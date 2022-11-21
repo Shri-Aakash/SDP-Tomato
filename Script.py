@@ -42,9 +42,12 @@ def pixel_to_cm(img_x,img_y):
 def cam2rbt():
     for ele in locations:
         robot_x,robot_y=transform(ele[0], ele[1])
-        r_t2=q2(robot_x,robot_y)
-        r_t1=q1(robot_x,robot_y,r_t2)
-        print(round(robot_x),round(robot_y))
+        try:
+            r_t2=q2(robot_x,robot_y)
+            r_t1=q1(robot_x,robot_y,r_t2)
+            print(round(robot_x),round(robot_y))
+        except:
+            pass
 
 def draw_label(im, label, x, y):
     """Draw text onto image at location."""
@@ -110,7 +113,7 @@ def post_process(input_image, outputs):
         centre=(left+width//2,top+height//2)          
         cv2.rectangle(input_image, (left, top), (left + width, top + height), BLUE, 3*THICKNESS)
         cv2.circle(input_image,centre,4,(0,255,255),2)
-        #locations.append(pixel_to_cm(centre[0], centre[1]))
+        locations.append(pixel_to_cm(centre[0], centre[1]))
         # try:
         #     roi=input_image[top:top+height,left:left+width]
         #     roi=cv2.resize(roi,(256,256),interpolation=cv2.INTER_AREA)
@@ -148,7 +151,7 @@ def main():
           #frame=cv2.resize(frame,(INPUT_HEIGHT,INPUT_WIDTH))
           detections = pre_process(frame, net)
           img = post_process(frame.copy(), detections)
-          #cam2rbt()
+          cam2rbt()
           t, _ = net.getPerfProfile()
           label = 'Inference time: %.2f ms' % (t * 1000.0 / cv2.getTickFrequency())
           print(label)
@@ -173,3 +176,5 @@ def main():
       # cv2.waitKey(0)
       cap.release()
       cv2.destroyAllWindows()
+
+main()
