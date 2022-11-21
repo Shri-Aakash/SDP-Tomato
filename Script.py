@@ -44,7 +44,7 @@ def cam2rbt():
         robot_x,robot_y=transform(ele[0], ele[1])
         r_t2=q2(robot_x,robot_y)
         r_t1=q1(robot_x,robot_y,r_t2)
-        print(round(r_t2),round(r_t1))
+        print(round(robot_x),round(robot_y))
 
 def draw_label(im, label, x, y):
     """Draw text onto image at location."""
@@ -52,7 +52,7 @@ def draw_label(im, label, x, y):
     text_size = cv2.getTextSize(label, FONT_FACE, FONT_SCALE, THICKNESS)
     dim, baseline = text_size[0], text_size[1]
     # Use text size to create a BLACK rectangle.
-    cv2.rectangle(im, (x,y), (x + dim[0], y + dim[1] + baseline), (0,0,0), cv2.FILLED);
+    cv2.rectangle(im, (x,y), (x + dim[0], y + dim[1] + baseline), (0,0,0), cv2.FILLED)
     # Display text inside the rectangle.
     cv2.putText(im, label, (x, y + dim[1]), FONT_FACE, FONT_SCALE, YELLOW, THICKNESS, cv2.LINE_AA)
 
@@ -99,7 +99,7 @@ def post_process(input_image, outputs):
                 height = int(h * y_factor)
                 box = np.array([left, top, width, height])
                 boxes.append(box)
-    indices = cv2.dnn.NMSBoxes(boxes, confidences, CONFIDENCE_THRESHOLD, NMS_THRESHOLD)
+    indices = cv2.dnn.NMSBoxes(boxes, np.array(confidences), CONFIDENCE_THRESHOLD, NMS_THRESHOLD)
     for i in indices:
         box = boxes[i]
         left = box[0]
@@ -110,7 +110,7 @@ def post_process(input_image, outputs):
         centre=(left+width//2,top+height//2)          
         cv2.rectangle(input_image, (left, top), (left + width, top + height), BLUE, 3*THICKNESS)
         cv2.circle(input_image,centre,4,(0,255,255),2)
-        locations.append(pixel_to_cm(centre[0], centre[1]))
+        #locations.append(pixel_to_cm(centre[0], centre[1]))
         # try:
         #     roi=input_image[top:top+height,left:left+width]
         #     roi=cv2.resize(roi,(256,256),interpolation=cv2.INTER_AREA)
@@ -148,11 +148,12 @@ def main():
           #frame=cv2.resize(frame,(INPUT_HEIGHT,INPUT_WIDTH))
           detections = pre_process(frame, net)
           img = post_process(frame.copy(), detections)
+          #cam2rbt()
           t, _ = net.getPerfProfile()
           label = 'Inference time: %.2f ms' % (t * 1000.0 / cv2.getTickFrequency())
           print(label)
           cv2.putText(img, label, (20, 40), FONT_FACE, FONT_SCALE, (0, 0, 255), THICKNESS, cv2.LINE_AA)
-          # cv2.imshow('Output', img)
+          cv2.imshow('Output', img)
           # i=2
           # if cv2.waitKey(1) & 0xFF==ord('s'):
           #     cv2.imwrite(f'{i}.jpg',img)

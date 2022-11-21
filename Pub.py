@@ -1,20 +1,21 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 import rospy
 import sys
 from std_msgs.msg import String
 from std_msgs.msg import Int32MultiArray
-import numpy as np
+from math import acos,atan,atan2,sin,cos
+from math import radians,degrees
 
-a1 = 19.75 #length of link a1 in cm
-a2 = 19.85 #length of link a2 in cm
+a1 = 0.1975 #length of link a1 in cm
+a2 = 0.1985 #length of link a2 in cm
 
 def q2(x,y):
-	return np.arccos((x**2+y**2-a1**2-a2**2)/(2*a1*a2))
+    return acos((x**2+y**2-(a1**2+a2**2))/(2*a1*a2))
 
-def q1(x,y,q2):
-	if x==0:
-		return 90-np.arctan(a2*np.sin(q2)/(a1+a2*np.cos(q2)))
-	return (np.arctan(y/x)-np.arctan(a2*np.sin(q2)/(a1+a2*np.cos(q2))))
+def q1(x,y,t2):
+    gamma=atan2(y, x)
+    beta=atan2(a2*sin(t2),a1+(2*a2*cos(t2)))
+    return gamma-beta
 
 def convertToTicks(angle):
 	return round(4096/360*angle)
@@ -27,16 +28,13 @@ if __name__=='__main__':
 		data_to_send=Int32MultiArray()
 		while not rospy.is_shutdown():
 			try:
-				x=float(input("Enter x coordinate"))
-				y=float(input("Enter y coordinate"))
+				x,y=map(float,input("Enter coordinates: ").rstrip().split())
 				print(x,y)
-				ang2=q2(x,y)
-				print(ang2)
-				ang1=q1(x,y,ang2)
-				print(ang1)
-				t1=convertToTicks(ang1)
-				t2=convertToTicks(ang2)
-				print(t1,t2)
+				theta2=q2(x,y)
+				theta1=q1(x,y,theta1)
+				print(theta1,theta2)
+				t1=convertToTicks(theta1)
+				t2=convertToTicks(theta2)
 			except:
 				print("Enter valid Coordinates")
 		data_to_send.data=[t1,t2]

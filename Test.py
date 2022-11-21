@@ -16,6 +16,8 @@ BLACK = (0, 0, 0)
 BLUE = (255, 178, 50)
 YELLOW = (0, 255, 255)
 
+width=1280
+height=720
 def draw_label(im, label, x, y):
     """Draw text onto image at location."""
     # Get text size.
@@ -112,6 +114,8 @@ if __name__ == '__main__':
       net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
       # Process image.
       cap=cv2.VideoCapture(0)
+      cap.set(cv2.CAP_PROP_FRAME_WIDTH,width)
+      cap.set(cv2.CAP_PROP_FRAME_HEIGHT,height)
       while True:
           ret,frame=cap.read()
           #frame=cv2.resize(frame,(INPUT_HEIGHT,INPUT_WIDTH))
