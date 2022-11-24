@@ -8,6 +8,8 @@ from Inverse import *
 from Transform import *
 import cv2
 import numpy as np
+import rospy
+from std_msgs.msg import Int32MultiArray
 INPUT_WIDTH=640
 INPUT_HEIGHT=640
 
@@ -24,6 +26,11 @@ BLACK = (0, 0, 0)
 BLUE = (255, 178, 50)
 YELLOW = (0, 255, 255)
 
+#ROS Publisher Node
+rospy.init_node('Scara_angle_pub',anonymous=True)
+pub=rospy.Publisher('/Scara_angles',Int32MultiArray,queue_size=10)
+angles=Int32MultiArray()
+
 #Pixel to cm conversion
 width=1280
 height=720
@@ -31,6 +38,7 @@ pixel_to_cmX=73/1280.0
 pixel_to_cmY=40.5/720.0
 classes = ['Ripe','Green','Half-Ripe']
 locations=[]
+mappings=dict()
 def convertToTicks(angle):
 	return round(4096/360*angle)
 def pixel_to_cm(img_x,img_y):
@@ -39,13 +47,12 @@ def pixel_to_cm(img_x,img_y):
     return (rw_x,rw_y)
 
 
-def cam2rbt():
-    for ele in locations:
-        robot_x,robot_y=transform(ele[0], ele[1])
+def cam2rbt(locations):
+        robot_x,robot_y=transform(locations[0], locations[1])
         try:
-            r_t2=q2(robot_x,robot_y)
-            r_t1=q1(robot_x,robot_y,r_t2)
-            print(round(robot_x),round(robot_y))
+            r_t2=round(q2(robot_x,robot_y))
+            r_t1=round(q1(robot_x,robot_y,r_t2))
+            return (r_t1,r_t2)
         except:
             pass
 
@@ -113,7 +120,8 @@ def post_process(input_image, outputs):
         centre=(left+width//2,top+height//2)          
         cv2.rectangle(input_image, (left, top), (left + width, top + height), BLUE, 3*THICKNESS)
         cv2.circle(input_image,centre,4,(0,255,255),2)
-        locations.append(pixel_to_cm(centre[0], centre[1]))
+        coord=cam2rbt(pixel_to_cm(centre[0],centre[1]))
+        locations.append(coord)
         # try:
         #     roi=input_image[top:top+height,left:left+width]
         #     roi=cv2.resize(roi,(256,256),interpolation=cv2.INTER_AREA)
@@ -127,7 +135,8 @@ def post_process(input_image, outputs):
         #     prediction=model.predict(roi)[0]
         #     label=labels[prediction.argmax()]
         # Class label.                      
-        label = "{}:{:.2f}".format(classes[class_ids[i]], confidences[i])        
+        label = "{}:{:.2f}".format(classes[class_ids[i]], confidences[i])
+        mappings[coord]=classes[class_ids[i]]        
         # Draw label.             
         draw_label(input_image, label, left, top)
     return input_image
@@ -151,12 +160,20 @@ def main():
           #frame=cv2.resize(frame,(INPUT_HEIGHT,INPUT_WIDTH))
           detections = pre_process(frame, net)
           img = post_process(frame.copy(), detections)
-          cam2rbt()
           t, _ = net.getPerfProfile()
           label = 'Inference time: %.2f ms' % (t * 1000.0 / cv2.getTickFrequency())
           print(label)
           cv2.putText(img, label, (20, 40), FONT_FACE, FONT_SCALE, (0, 0, 255), THICKNESS, cv2.LINE_AA)
           cv2.imshow('Output', img)
+          try:
+            if not rospy.is_shutdown():
+                for key,val in mappings.items():
+                    angles.data=[key[0],key[1],val]
+                    print(angles.data)
+                    #pub.publish(angles)
+          except rospy.ROSInterruptException as r:
+            rospy.loginfo("Error in execution. Try Again")
+            print("Error in execution. Try Again")
           # i=2
           # if cv2.waitKey(1) & 0xFF==ord('s'):
           #     cv2.imwrite(f'{i}.jpg',img)
