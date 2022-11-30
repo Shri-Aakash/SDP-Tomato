@@ -9,8 +9,8 @@ from math import radians,degrees
 #import numpy as np
 #import os
 
-a1=0.2
-a2=0.2
+a1=0.1975
+a2=0.1985
 
 max_reach=a1+a2
 min_reach=abs(a1-a2)
@@ -24,11 +24,14 @@ def q1(x,y,t2):
     return gamma-beta
 
 if __name__=='__main__':
-    x,y=map(float,input().rstrip().split())
-    try:
-        theta2=q2(x,y)
-        theta1=q1(x,y,theta2)
-        print(degrees(theta1),degrees(theta2))
-    except:
-        print("No valid solution for given co-ordinates.Make sure that co-ordinates are correct")
-    
+    while True:
+        try:
+            x,y=map(float,input().rstrip().split())
+            try:
+                theta2=q2(x,y)
+                theta1=q1(x,y,theta2)
+                print(round(degrees(theta1)),round(degrees(theta2)))
+            except:
+                print("No valid solution for given co-ordinates.Make sure that co-ordinates are correct")
+        except KeyboardInterrupt:
+            break
