@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 from Inverse import *
 from Transform import *
 import cv2
@@ -20,22 +21,35 @@ BLACK = (0, 0, 0)
 BLUE = (255, 178, 50)
 YELLOW = (0, 255, 255)
 
+#DataFrame
+
+#Pixel to cm conversion
 width=1280
 height=720
 pixel_to_cmX=73/1280.0
 pixel_to_cmY=40.5/720.0
 classes = ['Ripe','Green','Half-Ripe']
-#mappings=dict()
+mappings=dict()
 def convertToTicks(angle):
-    return round(4096/360*angle)
+	return round(4096/360*angle)
 def pixel_to_cm(img_x,img_y):
     rw_x=pixel_to_cmX*img_x
     rw_y=pixel_to_cmY*img_y
     return rw_x,rw_y
 
+
 def cam2rbt(cam_x,cam_y):
         robot_x,robot_y=transform(cam_x, cam_y)
         return (round(robot_x[0]),round(robot_y[0]))
+
+# def findAngles(rx,ry):
+#     try:
+#         theta2=q2(rx,ry)
+#         theta1=q1(rx,ry,theta2)
+#         print (round(degrees(theta1)),round(degrees(theta2)))
+#         return (round(degrees(theta1)),round(degrees(theta2)))
+#     except:
+#         return (-1,-1)
 
 def draw_label(im, label, x, y):
     """Draw text onto image at location."""
@@ -43,7 +57,7 @@ def draw_label(im, label, x, y):
     text_size = cv2.getTextSize(label, FONT_FACE, FONT_SCALE, THICKNESS)
     dim, baseline = text_size[0], text_size[1]
     # Use text size to create a BLACK rectangle.
-    cv2.rectangle(im, (x,y), (x + dim[0], y + dim[1] + baseline), (0,0,0), cv2.FILLED);
+    cv2.rectangle(im, (x,y), (x + dim[0], y + dim[1] + baseline), (0,0,0), cv2.FILLED)
     # Display text inside the rectangle.
     cv2.putText(im, label, (x, y + dim[1]), FONT_FACE, FONT_SCALE, YELLOW, THICKNESS, cv2.LINE_AA)
 
@@ -57,6 +71,7 @@ def pre_process(input_image, net):
     # Run the forward pass to get output of the output layers.
     outputs = net.forward(net.getUnconnectedOutLayersNames())
     return outputs
+
 
 def post_process(input_image, outputs):
     # Lists to hold respective values while unwrapping.
@@ -89,10 +104,10 @@ def post_process(input_image, outputs):
                 height = int(h * y_factor)
                 box = np.array([left, top, width, height])
                 boxes.append(box)
-    indices = cv2.dnn.NMSBoxes(boxes,np.array(confidences),NMS_THRESHOLD,CONFIDENCE_THRESHOLD)
+    indices = cv2.dnn.NMSBoxes(boxes, np.array(confidences), CONFIDENCE_THRESHOLD, NMS_THRESHOLD)
     df=pd.DataFrame(index=[i for i in range(len(indices))],columns=['X','Y','Category'])
     for i in indices:
-        box = boxes[int(i)]
+        box = boxes[i]
         left = box[0]
         top = box[1]
         width = box[2]
@@ -107,6 +122,7 @@ def post_process(input_image, outputs):
         df.at[i,'Y']=centreRobot[1]
         df.at[i,'Category']=class_ids[i]
         df.to_csv('Data.csv')
+        #print(robotAngles)
         # try:
         #     roi=input_image[top:top+height,left:left+width]
         #     roi=cv2.resize(roi,(256,256),interpolation=cv2.INTER_AREA)
@@ -120,50 +136,50 @@ def post_process(input_image, outputs):
         #     prediction=model.predict(roi)[0]
         #     label=labels[prediction.argmax()]
         # Class label.                      
-        label = "{}:{:.2f}".format(classes[class_ids[int(i)]], confidences[int(i)])        
+        label = "{}:{:.2f},{:.2f}".format(classes[class_ids[i]], centreRobot[0],centreRobot[1])
+        #mappings[centreRobot]=class_ids[i]        
         # Draw label.             
         draw_label(input_image, label, left, top)
     return input_image
 
-if __name__ == '__main__':
-      # Load class names.
-      classesFile = "coco.names"
-      #classes = ['Ripe','Green','Half-Ripe']
-      # with open(classesFile, 'rt') as f:
-      #       classes = f.read().rstrip('\n').split('\n')
-      # # Load image.
-      #frame = cv2.imread(‘traffic.jpg)
-      # Give the weight files to the model and load the network using       them.
-      modelWeights = "best.onnx"
-      net = cv2.dnn.readNet(modelWeights)
-      net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
-      net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
-      # Process image.
-      cap=cv2.VideoCapture(0)
-      cap.set(cv2.CAP_PROP_FRAME_WIDTH,width)
-      cap.set(cv2.CAP_PROP_FRAME_HEIGHT,height)
-      while True:
-          ret,frame=cap.read()
-          #frame=cv2.resize(frame,(INPUT_HEIGHT,INPUT_WIDTH))
-          detections = pre_process(frame, net)
-          img = post_process(frame.copy(), detections)
-          t, _ = net.getPerfProfile()
-          label = 'Inference time: %.2f ms' % (t * 1000.0 / cv2.getTickFrequency())
-          print(label)
-          cv2.putText(img, label, (20, 40), FONT_FACE, FONT_SCALE, (0, 0, 255), THICKNESS, cv2.LINE_AA)
-          #cv2.imshow('Output', img)
-          #if cv2.waitKey(1) & 0xFF==ord('q'):
-          break
-          #cv2.waitKey(0)
-      """
-      Put efficiency information. The function getPerfProfile returns       the overall time for inference(t) 
-      and the timings for each of the layers(in layersTimes).
-      """
-      # t, _ = net.getPerfProfile()
-      # label = 'Inference time: %.2f ms' % (t * 1000.0 /  cv2.getTickFrequency())
-      # print(label)
-      # cv2.putText(img, label, (20, 40), FONT_FACE, FONT_SCALE,  (0, 0, 255), THICKNESS, cv2.LINE_AA)
-      # cv2.imshow('Output', img)
-      # cv2.waitKey(0)
-      cap.release()
-      cv2.destroyAllWindows()
+
+
+if __name__=='__main__':
+    cap=cv2.VideoCapture(2)
+    modelWeights = "best.onnx"
+    net = cv2.dnn.readNet(modelWeights)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH,width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT,height)
+    while True:
+       ret,frame=cap.read()
+       #frame=cv2.resize(frame,(INPUT_HEIGHT,INPUT_WIDTH))
+       detections = pre_process(frame, net)
+       img = post_process(frame.copy(), detections)
+       t, _ = net.getPerfProfile()
+       label = 'Inference time: %.2f ms' % (t * 1000.0 / cv2.getTickFrequency())
+       print(label)
+       cv2.putText(img, label, (20, 40), FONT_FACE, FONT_SCALE, (0, 0, 255), THICKNESS, cv2.LINE_AA)
+       while True:
+        cv2.imshow('Output', img)
+        if cv2.waitKey(1) & 0xFF==ord('q'):
+            break
+       break
+        #i=2
+        #if cv2.waitKey(1) & 0xFF==ord('s'):
+         #   cv2.imwrite(f'{i}.jpg',img)
+         #   i+=1
+       #if cv2.waitKey(1) & 0xFF==ord('q'):
+        #break
+      #cv2.waitKey(0)
+    """
+    Put efficiency information. The function getPerfProfile returns       the overall time for inference(t) 
+    and the timings for each of the layers(in layersTimes).
+    """
+    # t, _ = net.getPerfProfile()
+    # label = 'Inference time: %.2f ms' % (t * 1000.0 /  cv2.getTickFrequency())
+    # print(label)
+    # cv2.putText(img, label, (20, 40), FONT_FACE, FONT_SCALE,  (0, 0, 255), THICKNESS, cv2.LINE_AA)
+    # cv2.imshow('Output', img)
+    # cv2.waitKey(0)
+    cap.release()
+    cv2.destroyAllWindows()

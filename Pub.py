@@ -1,13 +1,9 @@
 #!/usr/bin/env python
-import rospy
-import sys
-from std_msgs.msg import String
-from std_msgs.msg import Int32MultiArray
 from math import acos,atan,atan2,sin,cos
 from math import radians,degrees
 
-a1 = 0.1975 #length of link a1 in m
-a2 = 0.1985 #length of link a2 in m
+a1 = 19.75 #length of link a1 in m
+a2 = 19.85 #length of link a2 in m
 
 def q2(x,y):
     return acos((x**2+y**2-(a1**2+a2**2))/(2*a1*a2))
@@ -23,10 +19,7 @@ def convertToTicks(angle):
 if __name__=='__main__':
 	try:
 		x,y=0,0
-		rospy.init_node('Ticks_Pub',anonymous=True)
-		pub=rospy.Publisher('/Scara_angles',Int32MultiArray,queue_size=10)
-		data_to_send=Int32MultiArray()
-		while not rospy.is_shutdown():
+		while True:
 			try:
 				x=float(input("Enter X: "))
 				y=float(input("Enter Y: "))
@@ -36,12 +29,9 @@ if __name__=='__main__':
 				print(theta1,theta2)
 				tm1=convertToTicks(theta1)
 				tm2=convertToTicks(theta2)+2048
-				data_to_send.data=[tm1,tm2]
-				pub.publish(data_to_send)
 			except:
 				print("Enter valid Coordinates")
-		rospy.sleep(2)
-	except rospy.ROSInterruptException:
-		rospy.loginfo('Execution interrupted. Try again')
+	except :
+		print('Execution interrupted. Try again')
 
 

@@ -9,8 +9,8 @@ from math import radians,degrees
 #import numpy as np
 #import os
 
-a1=0.1975
-a2=0.1985
+a1=19.75
+a2=19.85
 
 max_reach=a1+a2
 min_reach=abs(a1-a2)
@@ -20,7 +20,7 @@ def q2(x,y):
 
 def q1(x,y,t2):
     gamma=atan2(y, x)
-    beta=atan2(a2*sin(t2),a1+(2*a2*cos(t2)))
+    beta=atan2(a2*sin(t2),a1+(a2*cos(t2)))
     return gamma-beta
 
 if __name__=='__main__':
